@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>pookalam</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      --bg: #ffffff;
+      --border: #d0d0d0;
+    }
+    html, body {
+      height: 100%;
+      margin: 0;
+      background: var(--bg);
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+    }
+    .wrap {
+      display: grid;
+      place-items: center;
+      height: 100%;
+      padding: 12px;
+    }
+    canvas {
+      width: min(95vw, 1200px);
+      height: min(95vw, 1200px);
+      max-width: 1200px;
+      max-height: 1200px;
+      aspect-ratio: 1;
+      border: 1px solid var(--border);
+      background: #fff;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+      border-radius: 12px;
+    }
+    .hint {
+      position: fixed;
+      bottom: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 12px;
+      opacity: .7;
+      user-select: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <canvas id="art" width="1200" height="1200"></canvas>
+  </div>
+  <div class="hint">code a pookalam</div>
+
+  <script>
+    // Canvas setup
+    const canvas = document.getElementById('art');
+    const ctx = canvas.getContext('2d');
+
+    // Move origin to center and flip Y to match Turtle's coordinate system
+    const cx = canvas.width / 2;
+    const cy = canvas.height / 2;
+    ctx.translate(cx, cy);
+    ctx.scale(1, -1);
+
+    // Helpers
+    const deg = a => a * Math.PI / 180;
+
+    function withSave(fn) {
+      ctx.save();
+      try { fn(); } finally { ctx.restore(); }
+    }
+
+    function fillCircle(radius, color) {
+      ctx.beginPath();
+      ctx.fillStyle = color;
+      ctx.arc(0, 0, radius, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Draw a square whose one corner is at the origin (like your Turtle 'square(size)')
+    function squareFromCorner(size) {
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(size, 0);
+      ctx.lineTo(size, size);
+      ctx.lineTo(0, size);
+      ctx.closePath();
+    }
+
+    // Draw the rhombus/kite used in draw_square()
+    function kiteShape(len) {
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(len, 0);
+      ctx.lineTo(len + len * Math.cos(deg(150)), len * Math.sin(deg(150)));
+      // return back to start using the symmetric edge
+      ctx.lineTo(len * Math.cos(deg(150)), len * Math.sin(deg(150)));
+      ctx.closePath();
+    }
+
+    // Regular polygon centered at origin
+    function regularPolygon(sides, radius) {
+      ctx.beginPath();
+      for (let i = 0; i < sides; i++) {
+        const a = 2 * Math.PI * i / sides - Math.PI / 2;
+        const x = radius * Math.cos(a);
+        const y = radius * Math.sin(a);
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.closePath();
+    }
+
+    // Petal using ellipse (approximation of Turtle's two-arc petal)
+    function ellipsePetal(rx, ry) {
+      // Draw an ellipse aligned with the current rotation
+      ctx.beginPath();
+      ctx.ellipse(0, 0, rx, ry, 0, 0, Math.PI * 2);
+      ctx.closePath();
+    }
+
+    // A long, slim petal (for big_flower) using ellipse
+    function longPetal(length, thickness) {
+      // thickness is half-width, length is half-height
+      ctx.beginPath();
+      ctx.ellipse(0, 0, thickness, length, 0, 0, Math.PI * 2);
+      ctx.closePath();
+    }
+
+    /********************
+     * Render sequence  *
+     ********************/
+
+    // Colors from your Turtle
+    const C1 = "#770E13";
+    const C2 = "#E67B47";
+    const C3 = "#ECE19F";
+    const C4 = "orange";
+    const C5 = "#383629";
+    const C6 = "#EFE19A";
+    const C7 = "#C8520A";
+    const GOLD = "#FFD504";
+    const GREEN = "#2E7644";
+
+    // === circ() calls ===
+    ctx.lineWidth = 1;
+    fillCircle(400, C1);
+    fillCircle(390, C2);
+    fillCircle(380, C3);
+
+    // === 36 rotated squares (red), one corner at origin ===
+    withSave(() => {
+      ctx.fillStyle = "red";
+      for (let k = 0; k < 36; k++) {
+        withSave(() => {
+          ctx.rotate(deg(10 * k));
+          squareFromCorner(270);
+          ctx.fill();
+        });
+      }
+    });
+
+    // Orange ring
+    fillCircle(350, C4);
+
+    // === big_flower layers (approximate with long ellipses) ===
+    // Layer 1 (dark gray)
+    withSave(() => {
+      ctx.fillStyle = C5;
+      for (let i = 0; i < 12; i++) {
+        withSave(() => {
+          ctx.rotate(deg(360 * i / 12));
+          // long slim petal of radius ~305 in Turtle -> half-height ~305
+          longPetal(305, 305 * 0.12);
+          ctx.fill();
+        });
+      }
+    });
+
+    // rotate right(60) = -60 degrees
+    withSave(() => {
+      ctx.rotate(deg(-60));
+      ctx.fillStyle = C6;
+      for (let i = 0; i < 12; i++) {
+        withSave(() => {
+          ctx.rotate(deg(360 * i / 12));
+          longPetal(305, 305 * 0.12);
+          ctx.fill();
+        });
+      }
+    });
+
+    // rotate right(60) again and draw orange/brown layer
+    withSave(() => {
+      ctx.rotate(deg(-120));
+      ctx.fillStyle = C7;
+      for (let i = 0; i < 12; i++) {
+        withSave(() => {
+          ctx.rotate(deg(360 * i / 12));
+          longPetal(305, 305 * 0.12);
+          ctx.fill();
+        });
+      }
+    });
+
+    // Red circle at 280
+    fillCircle(280, "red");
+
+    // === 12 rotated squares (beige) ===
+    withSave(() => {
+      ctx.fillStyle = C3;
+      for (let k = 0; k < 12; k++) {
+        withSave(() => {
+          ctx.rotate(deg(30 * k));
+          squareFromCorner(197);
+          ctx.fill();
+        });
+      }
+    });
+
+    // === 12 hexagons (gold) rotated 30° steps ===
+    withSave(() => {
+      ctx.fillStyle = GOLD;
+      for (let k = 0; k < 12; k++) {
+        withSave(() => {
+          ctx.rotate(deg(30 * k));
+          regularPolygon(6, 140);  // hexagon radius ~ side length in our approx
+          ctx.fill();
+        });
+      }
+    });
+
+    // Beige circle 250
+    fillCircle(250, "#F4E389");
+
+    // === draw_flower('orange', 129) -> 36 rotated kite shapes ===
+    withSave(() => {
+      ctx.fillStyle = "orange";
+      for (let i = 0; i < 36; i++) {
+        withSave(() => {
+          ctx.rotate(deg(10 * i));
+          kiteShape(129);
+          ctx.fill();
+        });
+      }
+    });
+
+    // Circles 220 (E67B47) and 210 (green)
+    fillCircle(220, C2);
+    fillCircle(210, GREEN);
+
+    // === 36 rotated squares (orange) size 148 ===
+    withSave(() => {
+      ctx.fillStyle = "orange";
+      for (let k = 0; k < 36; k++) {
+        withSave(() => {
+          ctx.rotate(deg(10 * k));
+          squareFromCorner(148);
+          ctx.fill();
+        });
+      }
+    });
+
+    // Circle 160 (beige)
+    fillCircle(160, "#F4E389");
+
+    // === 9 hexagons (red) rotated by 40° each ===
+    withSave(() => {
+      ctx.fillStyle = "red";
+      for (let k = 0; k < 9; k++) {
+        withSave(() => {
+          ctx.rotate(deg(40 * k));
+          regularPolygon(6, 100);
+          ctx.fill();
+        });
+      }
+    });
+
+    // Concentric circles: 172, 162, 152, 142
+    fillCircle(172, C7);
+    fillCircle(162, C1);
+    fillCircle(152, C2);
+    fillCircle(142, C4);
+
+    // === Three 'flower' layers with 9 petals each (ellipse approximation) ===
+    // Layer 1: #383629
+    withSave(() => {
+      ctx.fillStyle = C5;
+      for (let i = 0; i < 9; i++) {
+        withSave(() => {
+          ctx.rotate(deg(360 * i / 9));
+          ellipsePetal(140 * 0.25, 140); // rx, ry
+          ctx.fill();
+        });
+      }
+    });
+
+    // rotate left(30) = +30 degrees (since Y is flipped the sense is consistent for symmetry)
+    withSave(() => {
+      ctx.rotate(deg(30));
+      ctx.fillStyle = C6;
+      for (let i = 0; i < 9; i++) {
+        withSave(() => {
+          ctx.rotate(deg(360 * i / 9));
+          ellipsePetal(140 * 0.25, 140);
+          ctx.fill();
+        });
+      }
+    });
+
+    // rotate left(30) again
+    withSave(() => {
+      ctx.rotate(deg(60));
+      ctx.fillStyle = C7;
+      for (let i = 0; i < 9; i++) {
+        withSave(() => {
+          ctx.rotate(deg(360 * i / 9));
+          ellipsePetal(140 * 0.25, 140);
+          ctx.fill();
+        });
+      }
+    });
+
+    // === Final 6 small squares (alternating yellow/orange), rotated by 60°
+    withSave(() => {
+      for (let k = 0; k < 6; k++) {
+        withSave(() => {
+          ctx.rotate(deg(60 * k));
+          ctx.fillStyle = (k % 2 === 0) ? "yellow" : "orange";
+          squareFromCorner(40);
+          ctx.fill();
+        });
+      }
+    });
+
+    // Done!
+  </script>
+</body>
+</html>
